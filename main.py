@@ -30,8 +30,8 @@ def save_font(id,font):
     return fontdata
 
 def font_replace(response):
-    # base_font = TTFont('./font/02.woff')
-    base_font = get_font(response)
+    base_font = TTFont('./font/02.woff')
+    # base_font = get_font(response) #在scrapy中使用时开启
     base_list = base_font.getGlyphOrder()[2:]
     
     font_dict = {}
