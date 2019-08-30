@@ -1,6 +1,6 @@
 from fontTools.ttLib import TTFont
 from knn_font import classifyPerson
-base_font = TTFont('./font/02.woff')
+base_font = TTFont('./font/05.woff')
 base_list = base_font.getGlyphOrder()[2:]
 
 font_dict = {}

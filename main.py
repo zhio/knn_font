@@ -4,10 +4,10 @@ from knn_font import classifyPerson
 import requests
 import base64
 def get_font(response):
+    #获取font相关信息
     try:
         font_link = re.findall(r'vfile.meituan.net/colorstone/(\w+\.woff)',response.text)[0]
         fontdata = download_font(font_link)
-
     except:
         try:
             font_text = response.xpath('//style[@id="js-nuwa"]/text()').extract_first()
@@ -19,17 +19,20 @@ def get_font(response):
     return fontdata
 
 def download_font(link):
+    #如果是url使用此方法
     download_link = 'http://vfile.meituan.net/colorstone/' + link
     woff = requests.get(download_link)
     return woff.content
 
 def save_font(id,font):
+    #如果是bash64使用此方法
     fontdata = base64.b64decode(font)
     # with open(r"./font/"+id+r".woff","wb") as f:
     #     f.write(fontdata)
     return fontdata
 
 def font_replace(response):
+    #替换所有的加密字符
     base_font = TTFont('./font/02.woff')
     # base_font = get_font(response) #在scrapy中使用时开启
     base_list = base_font.getGlyphOrder()[2:]
