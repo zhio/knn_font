@@ -19,4 +19,5 @@ https://link.zhihu.com/?target=https%3A//github.com/Ingram7/maoyan_font
 
 经过简单的训练，只有三组数据（30条），即可将坐标分类
 
-友链：https://blog.csdn.net/qq_29570381/article/details/103035678
+改进版：
+https://github.com/xfs-coder/knn-font/
