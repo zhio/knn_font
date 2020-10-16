@@ -11,4 +11,3 @@ for font in base_list:
     # print("=================================")
     font_dict[font] = classifyPerson(font_0)
 print(font_dict)
-    
