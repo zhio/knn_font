@@ -79,21 +79,28 @@ def classify0(inX, dataSet, labels, k):
         # print(voteIlabel)
         classCount[voteIlabel] = classCount.get(voteIlabel, 0) + 1
         print(classCount.get(voteIlabel, 0))
-    print(classCount)
-
-    print("======================================")
+    # print(classCount)
+    # print("======================================")
+    # 将数据表进行一个排序 最大的值就是最可能的值
     sortedClassCount = sorted(classCount.items(), key=operator.itemgetter(1), reverse=True)
+    # 返回第一个 即为程序计算出最相似的那个
+    # print(sortedClassCount)
+    # print("===========================")
     return sortedClassCount[0][0]
 
 
 def file2matrix():
     # 构造训练集
+    # 从外部导入
     with open('fontdata.txt') as file:
         arrayOlines = file.readlines()
     numberOfLines = len(arrayOlines)
+    # 和 classifyPerson 中一样 生成一个200大小的矩阵
     returnMat = np.zeros((numberOfLines, 200))
     classLabelVector = []
     index = 0
+    # 下边这段就是对 fontdata.txt 中的数据进行还原
+    # 还原成训练集
     for line in arrayOlines:
         line = line.strip()
         listFromLine = line.split('->')
@@ -121,6 +128,7 @@ def file2matrix():
         elif listFromLine[0] == '0':
             classLabelVector.append(0)
         index += 1
+    # 返回
     return returnMat, classLabelVector
 
 
