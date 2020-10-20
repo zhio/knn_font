@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+	</head>
+	<body>
+		{% autoescape false %}
+			{% for each in data_list %}
+				<div>{{ each }}</div>
+			{% endfor %}
+		{% endautoescape %}
+	</body>
+</html>

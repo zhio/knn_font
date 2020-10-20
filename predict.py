@@ -2,11 +2,12 @@ from fontTools.ttLib import TTFont
 from knn_font import classifyPerson
 
 
+# 预测的部分
 class Predict(object):
     # 静态函数 直接调用
     @staticmethod
     def predict(font_name):
-        # 输入需要识别的字体          
+        # 输入需要识别的字体
         # 这里传入的是路径
         base_font = TTFont(str(font_name))
         if not base_font:

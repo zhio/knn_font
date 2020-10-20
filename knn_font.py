@@ -2,6 +2,7 @@ import numpy as np
 import operator
 
 
+# 代码的核心部分
 # inArr 传入的font数据(经过构造)
 # datingDataMat 训练集的数据
 # datingLabels 训练集的标签
@@ -78,7 +79,7 @@ def classify0(inX, dataSet, labels, k):
         # print(sortedDistIndices[i])
         # print(voteIlabel)
         classCount[voteIlabel] = classCount.get(voteIlabel, 0) + 1
-        print(classCount.get(voteIlabel, 0))
+        # print(classCount.get(voteIlabel, 0))
     # print(classCount)
     # print("======================================")
     # 将数据表进行一个排序 最大的值就是最可能的值
