@@ -123,7 +123,7 @@ def decodeResult(file_name):
         each = re.sub("n", "", str(each))
         each = re.sub("t", "", str(each))
         each = re.sub("\\\\", "", str(each))
-        data_ = {n: each}
+        data_ = {str(n): str(each)}
         n = n + 1
         result.append(data_)
     # 将结果返回
