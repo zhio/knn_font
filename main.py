@@ -1,84 +1,135 @@
 import requests
-from fontTools.ttLib import TTFont
-from knn_font import classifyPerson
-import requests
-import base64
 import re
-from lxml import etree
-def get_font(response):
-    #获取font相关信息
-    try:
-        font_link = re.findall(r'vfile.meituan.net/colorstone/(\w+\.woff)',response.text)[0]
-        fontdata = download_font(font_link)
-    except:
-        try:
-            selector = etree.HTML(response)
-            font_text = selector.xpath('//style[@id="js-nuwa"]/text()')[0]
-            # font_text = response.xpath('//style[@id="js-nuwa"]/text()').extract_first()
-            base64_behind = re.split('\;base64\,', font_text)[1]
-            font_content = re.split('\)', base64_behind)[0].strip()
-            fontdata = save_font(font_content)
-        except:
-            fontdata = "没有字体文件或者出现异常"
-            print(fontdata)
-    return fontdata
+from predict import Predict
+from flask import Flask
+from flask import render_template
+import html
 
-def download_font(link):
-    #如果是url使用此方法
-    download_link = 'http://vfile.meituan.net/colorstone/' + link
-    woff = requests.get(download_link)
-    return woff.content
+# 调用接口例子
+# 例如此时的woff链接为 vfile.meituan.net/colorstone/9c846f7774c2b8280bd204adba5c669a2276.woff
+# 那么调用如下接口
+# http://192.168.1.1:5001/decode/filename=9c846f7774c2b8280bd204adba5c669a2276
+# 返回结果为json数据 直接解析替换即可
 
-def save_font(font):
-    #如果是bash64使用此方法
-    fontdata = base64.b64decode(font)
-    with open("new.woff","wb") as f:
-        f.write(fontdata)
-    return TTFont("new.woff")
+# 存放的路径
+download_path = "./download/"
+# server 以后修改成服务器的IP就好
+server_ip = "192.168.1.254"
+# server port
+server_port = "5001"
+# 解密的缓存列表
+decode_list = {}
 
-def font_replace(response):
-    #替换所有的加密字符
-    # base_font = TTFont('./font/02.woff')
-    base_font = get_font(response) #在scrapy中使用时开启
-    base_list = base_font.getGlyphOrder()[2:]
-    
-    font_dict = {}
-    for font in base_list:
-        coordinate = base_font['glyf'][font].coordinates
-        font_0 = [i for item in coordinate for i in item]
-        # print(font_0)
-        font_dict[font] = classifyPerson(font_0)
-    print(font_dict)
 
-    for i in base_list:
-        pattern = i.replace('uni','&#x').lower() + ';'
-        response = response.replace(pattern,str(font_dict[i]))
-    return response
+def download_woff(file_name):
+    # vfile.meituan.net/colorstone/9c846f7774c2b8280bd204adba5c669a2276.woff
+    url = "https://vfile.meituan.net/colorstone/" + str(file_name) + ".woff"
+    # print(url)
+    file_name = str(file_name) + ".woff"
+    # 这里判断一下 url 的文件是否存在
+    # 缓存中存在
+    result = decode_list.get(file_name)
+    if result:
+        # 如果存在的话
+        return str(result)
+    # 不存在
+    url = re.sub(" ", "", str(url))
+    # 把文件下载下来
+    response = requests.get(url)
+    download_path_ = str(download_path) + str(file_name)
+    file_ = open(download_path_, 'wb')
+    file_.write(response.content)
+    response.close()
+    file_.close()
+    # 预测在这里
+    result = Predict.predict(download_path_)
+    # 把预测结果放到缓存数组中去 提速
+    decode_list[file_name] = result
+    return str(result)
 
-def get_page():
-    base_url = 'https://piaofang.maoyan.com/movie/342903'
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36"
-    }
-    html = requests.get(base_url,headers = headers)
-    print(html.text)
-    return html.text
 
+# Flask
+app = Flask(__name__)
+
+
+# 查看当前缓存的状态
+@app.route('/index')
+def index():
+    return str(decode_list)
+
+
+# 下载需要解密的字体文件
+@app.route('/download/filename=<filename>')
+def downloadurlfilename(filename):
+    return str(download_woff(filename))
+
+
+# 清空缓存 (不清也行 当积累的多了 记得调一下)
+@app.route('/clear')
+def clear():
+    decode_list.clear()
+    return "200"
+
+
+# 模拟猫眼的加密方式 让 decode 函数进行解密
+@app.route("/show/filename=<file_name>")
+def showDecode(file_name=None):
+    if not file_name:
+        return "None"
+    # {'uniF223': 2,
+    # 'uniF72F': 9,
+    # 'uniF2C5': 1,
+    # 'uniE78B': 3,
+    # 'uniEB25': 6,
+    # 'uniE124': 8,
+    # 'uniE22A': 4,
+    # 'uniEDAE': 7,
+    # 'uniE5C7': 5,
+    # 'uniE762': 0}
+    origin_list = decode_list.get(file_name + ".woff")
+    if not origin_list:
+        # 如果获取不到 说明缓冲区里没有 那就调用download
+        origin_list = download_woff(file_name)
+    # 因为数字的顺序不一致 所以在这里排个序 方便处理
+    origin_list = sorted(origin_list.items(), key=lambda x: x[1], reverse=False)
+    data_list = []
+    # print(origin_list)
+    for each in origin_list:
+        re_ = re.findall("\('(.*?)',.*?\)", str(each), re.S | re.M)[0]
+        re_ = re.sub("uni", "&#x", str(re_))
+        data_list.append(re_)
+    return render_template("faker.html", data_list=data_list)
+
+
+# 一般外部调用这个接口 直接返回json格式的结果
+@app.route("/decode/filename=<file_name>")
+def decodeResult(file_name):
+    if not file_name:
+        return "None"
+    is_exits = re.findall(file_name, str(decode_list), re.S | re.M)
+    if not is_exits:
+        download_woff(file_name)
+    # @app.route("/show/filename=<file_name>") 这里模拟了woff文件
+    # 下面访问这个链接 获取结果
+    response = requests.get("http://" + str(server_ip) + ":" + str(server_port) + "/show/filename=" + str(file_name))
+    response = response.content.decode("utf-8")
+    response = html.unescape(response)
+    num_list = re.findall("<div>(.*?)</div>", str(response), re.S | re.M)
+    n = 0
+    result = []
+    for each in num_list:
+        each = re.sub("\n", "", str(each))
+        each = re.sub("\t", "", str(each))
+        each = re.sub("n", "", str(each))
+        each = re.sub("t", "", str(each))
+        each = re.sub("\\\\", "", str(each))
+        data_ = {str(n): str(each)}
+        n = n + 1
+        result.append(data_)
+    # 将结果返回
+    return str(result)
+
+
+# 启动函数
 if __name__ == '__main__':
-    html = get_page()
-    print(type(html))
-    response = font_replace(html)
-    print(response)
-    if (len(re.findall("内地票房", response)) > 0):
-        selector = etree.HTML(response)
-        infoKeys = selector.xpath('//p[@class="info-detail-title"]/text()')
-        infoKeys = infoKeys[:8]
-        values = []
-        detail_values = re.findall('<i class="cs">(.*?)</i>.*?<span class="detail-unit">(.*?)</span>\n ', response, re.S)
-        for key in detail_values:
-            value = "".join(key)
-            values.append(value)
-        print(infoKeys)
-        print(values)
-
-
+    app.run(host=str(server_ip), port=str(server_port))
